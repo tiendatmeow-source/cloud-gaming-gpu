@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.log
+bots/
+bot_logs/
+gpu_server/
+.DS_Store
+.ipynb_checkpoints/

@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPU Cloud Server — Cloud Gaming + Treo Bot trên Kaggle/Colab</title>
+<meta name="description" content="Máy chủ GPU đám mây trong trình duyệt: cloud gaming, treo bot Discord/Telegram, web terminal — chạy 2 ô code trên Kaggle/Google Colab, URL public qua Cloudflare Tunnel.">
+<style>
+:root{
+  --bg:#070510;--bg2:#0d0a1f;--card:rgba(255,255,255,.045);--line:rgba(255,255,255,.1);
+  --tx:#ece9f7;--mut:#9d96bd;--acc:#8b5cf6;--acc2:#22d3ee;--hot:#f472b6;--ok:#34d399;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:ui-sans-serif,system-ui,'Segoe UI',Roboto,sans-serif;color:var(--tx);background:var(--bg);overflow-x:hidden}
+::selection{background:rgba(139,92,246,.4)}
+a{color:var(--acc2);text-decoration:none}
+
+/* ── decorative background ── */
+.orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.5;z-index:-1;animation:float 14s ease-in-out infinite}
+.orb1{width:520px;height:520px;background:#7c3aed55;top:-140px;right:-120px}
+.orb2{width:420px;height:420px;background:#22d3ee44;bottom:-120px;left:-100px;animation-delay:-5s}
+.orb3{width:300px;height:300px;background:#f472b633;top:40%;left:60%;animation-delay:-9s}
+@keyframes float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-46px) scale(1.07)}}
+.gridbg{position:fixed;inset:0;z-index:-2;background:
+  linear-gradient(rgba(139,92,246,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(139,92,246,.05) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 30%,transparent 75%)}
+
+/* ── layout ── */
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(7,5,16,.72);border-bottom:1px solid var(--line)}
+nav{display:flex;align-items:center;gap:18px;padding:14px 0}
+.logo{font-weight:800;font-size:17px;background:linear-gradient(90deg,#a78bfa,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.3px}
+nav .lnk{color:var(--mut);font-size:14px;font-weight:600}
+nav .lnk:hover{color:#fff}
+nav .sp{flex:1}
+.btn{display:inline-flex;align-items:center;gap:9px;padding:12px 22px;border-radius:14px;font-weight:700;font-size:15px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--tx);cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px);border-color:var(--acc)}
+.btn.colab{background:linear-gradient(90deg,#f9ab00,#e37400);border-color:#f9ab00;color:#1d1300}
+.btn.kaggle{background:linear-gradient(90deg,#20beff,#0d8fc7);border-color:#20beff;color:#031b28}
+.btn.gh{background:#161b22;border-color:#30363d}
+.btn.small{padding:9px 16px;font-size:13.5px;border-radius:11px}
+
+/* ── hero ── */
+.hero{padding:84px 0 64px;text-align:center}
+.hero .badge{display:inline-flex;gap:8px;align-items:center;font-size:13px;font-weight:600;color:#c4b5fd;border:1px solid rgba(139,92,246,.4);background:rgba(139,92,246,.12);padding:7px 16px;border-radius:999px}
+.hero h1{font-size:clamp(34px,6vw,60px);line-height:1.12;margin:22px auto 18px;max-width:880px;font-weight:800}
+.hero h1 .grad{background:linear-gradient(90deg,#a78bfa 0%,#22d3ee 55%,#f472b6 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.sub{color:var(--mut);font-size:17.5px;line-height:1.7;max-width:720px;margin:0 auto 30px}
+.hero .cta{display:flex;gap:13px;justify-content:center;flex-wrap:wrap;margin-bottom:26px}
+.hero .chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;color:var(--mut);font-size:13px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:6px 14px;background:rgba(255,255,255,.03)}
+
+/* ── mock window ── */
+.mock{margin:44px auto 0;max-width:860px;border:1px solid rgba(139,92,246,.35);border-radius:18px;overflow:hidden;text-align:left;background:linear-gradient(180deg,rgba(124,58,237,.14),rgba(13,10,31,.9));box-shadow:0 30px 80px -20px rgba(124,58,237,.45)}
+.mock .bar{display:flex;gap:7px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:center}
+.mock .dot{width:11px;height:11px;border-radius:50%}
+.mock .addr{margin-left:10px;font-size:12px;color:var(--mut);font-family:ui-monospace,monospace;background:rgba(255,255,255,.06);padding:5px 12px;border-radius:8px}
+.mock .body{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:18px}
+.mock .mcard{border:1px solid var(--line);border-radius:12px;padding:13px;background:rgba(255,255,255,.04)}
+.mock .mcard b{font-size:12.5px;color:var(--mut);display:block;margin-bottom:6px;font-weight:600}
+.mock .mcard .v{font-size:16px;font-weight:800}
+.mock .mbar{height:6px;border-radius:99px;background:rgba(255,255,255,.09);margin-top:7px;overflow:hidden}
+.mock .mbar i{display:block;height:100%;width:64%;border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--acc2));animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{0%,100%{width:58%}50%{width:82%}}
+.mock .url{grid-column:1/-1;font-family:ui-monospace,monospace;font-size:13px;color:#a5f3fc;border:1px dashed rgba(34,211,238,.4);border-radius:10px;padding:10px 14px;background:rgba(34,211,238,.06)}
+
+/* ── sections ── */
+section{padding:74px 0}
+.sec-title{text-align:center;font-size:clamp(26px,4vw,38px);font-weight:800;margin-bottom:12px}
+.sec-sub{text-align:center;color:var(--mut);max-width:640px;margin:0 auto 44px;line-height:1.7}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.fcard{border:1px solid var(--line);border-radius:18px;padding:22px;background:var(--card);transition:.25s}
+.fcard:hover{transform:translateY(-4px);border-color:rgba(139,92,246,.5);background:rgba(139,92,246,.07)}
+.fcard .ico{font-size:30px}
+.fcard h3{font-size:16.5px;margin:12px 0 8px}
+.fcard p{color:var(--mut);font-size:14px;line-height:1.7}
+
+/* ── steps ── */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;counter-reset:st}
+.step{border:1px solid var(--line);border-radius:18px;padding:24px;background:var(--card);position:relative}
+.step::before{counter-increment:st;content:counter(st);position:absolute;top:-16px;left:22px;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;box-shadow:0 8px 20px -6px rgba(139,92,246,.7)}
+.step h3{font-size:16px;margin:10px 0 8px}
+.step p{color:var(--mut);font-size:14px;line-height:1.7}
+code.inline{font-family:ui-monospace,monospace;font-size:12.5px;background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.3);border-radius:6px;padding:2px 7px;color:#c4b5fd}
+
+/* ── code block ── */
+.codewrap{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#0b0819}
+.codewrap .top{display:flex;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);color:var(--mut);font-size:12.5px}
+.codewrap pre{padding:20px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.75;overflow:auto;color:#cdc7ea}
+.c-k{color:#c792ea}.c-s{color:#a5f3fc}.c-c{color:#6b6488}.c-f{color:#82aaff}.c-ok{color:#34d399}
+
+/* ── limits table ── */
+.tbl{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:14.5px}
+.tbl th{background:rgba(139,92,246,.14);text-align:left;padding:13px 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:#c4b5fd}
+.tbl td{padding:13px 16px;border-top:1px solid var(--line);color:var(--mut)}
+.tbl td:first-child{color:var(--tx);font-weight:600}
+
+/* ── faq ── */
+details{border:1px solid var(--line);border-radius:14px;background:var(--card);margin-bottom:12px;padding:0 20px}
+details summary{cursor:pointer;font-weight:700;font-size:15.5px;padding:18px 0;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details summary::after{content:'+';color:var(--acc);font-size:20px}
+details[open] summary::after{content:'–'}
+details p{color:var(--mut);font-size:14.5px;line-height:1.75;padding:0 0 18px}
+
+/* ── banner / footer ── */
+.cta-band{border:1px solid rgba(139,92,246,.4);border-radius:22px;padding:44px 30px;text-align:center;background:linear-gradient(120deg,rgba(124,58,237,.22),rgba(34,211,238,.1))}
+.cta-band h2{font-size:clamp(24px,3.6vw,34px);margin-bottom:10px}
+footer{padding:44px 0 60px;color:var(--mut);font-size:13.5px;line-height:1.8}
+footer .warn{border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.07);border-radius:14px;padding:16px 20px;margin-top:18px;color:#fcd34d;font-size:13px}
+.reveal{opacity:0;transform:translateY(26px);transition:.7s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+@media(max-width:640px){.hero{padding:56px 0 44px}section{padding:56px 0}}
+</style>
+</head>
+<body>
+<div class="gridbg"></div>
+<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+
+<header><div class="wrap"><nav>
+  <div class="logo">🎮 GPU CLOUD SERVER</div>
+  <div class="sp"></div>
+  <a class="lnk" href="#features">Tính năng</a>
+  <a class="lnk" href="#how">Cách chạy</a>
+  <a class="lnk" href="#faq">FAQ</a>
+  <a class="btn small gh" href="https://github.com/tiendatmeow-source/cloud-gaming-gpu" target="_blank">★ GitHub</a>
+</nav></div></header>
+
+<div class="wrap">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">☁️ Cloudflare Tunnel · không cần domain · 2 ô code</div>
+  <h1>Máy chủ GPU đám mây <span class="grad">chơi game & treo bot</span> ngay trong trình duyệt</h1>
+  <p class="sub">Chạy trên GPU miễn phí của <b>Kaggle</b> / <b>Google Colab</b>. Tự động cài đặt toàn bộ, in ra URL public
+  <code style="font-family:ui-monospace;color:#a5f3fc">https://xxx.trycloudflare.com</code> — desktop ảo chơi game, web terminal, treo bot Discord/Telegram, quản lý file.</p>
+  <div class="cta">
+    <a class="btn colab" href="https://colab.research.google.com/github/tiendatmeow-source/cloud-gaming-gpu/blob/main/cloud_gpu_server.ipynb" target="_blank">▶ Open in Google Colab</a>
+    <a class="btn kaggle" href="https://www.kaggle.com/kernels/welcome?src=https%3A%2F%2Fgithub.com%2Ftiendatmeow-source%2Fcloud-gaming-gpu%2Fblob%2Fmain%2Fcloud_gpu_server.ipynb" target="_blank">🅺 Open in Kaggle</a>
+    <a class="btn" href="https://raw.githubusercontent.com/tiendatmeow-source/cloud-gaming-gpu/main/cloud_gpu_server.ipynb" download>⬇️ Tải notebook</a>
+  </div>
+  <div class="chips">
+    <span class="chip">🎮 Cloud Gaming</span>
+    <span class="chip">🤖 Bot hosting 24/7</span>
+    <span class="chip">⌨️ Web Terminal</span>
+    <span class="chip">📊 Realtime GPU stats</span>
+    <span class="chip">🔐 Access-key protected</span>
+  </div>
+
+  <div class="mock reveal">
+    <div class="bar"><span class="dot" style="background:#f87171"></span><span class="dot" style="background:#fbbf24"></span><span class="dot" style="background:#34d399"></span><span class="addr">gpu-cloud-server.trycloudflare.com/?key=••••••</span></div>
+    <div class="body">
+      <div class="mcard"><b>🎮 GPU</b><div class="v">Tesla T4 · 16GB</div><div class="mbar"><i></i></div></div>
+      <div class="mcard"><b>🧠 CPU</b><div class="v">8 vCPU · 23%</div><div class="mbar"><i style="width:23%"></i></div></div>
+      <div class="mcard"><b>🤖 BOTS</b><div class="v">2 đang chạy</div><div class="mbar"><i style="width:66%"></i></div></div>
+      <div class="url">📊 Dashboard&nbsp;&nbsp;https://gpu-server-abc.trycloudflare.com/?key=9f2c…<br>🖥️ Desktop&nbsp;&nbsp;&nbsp;https://desktop-xyz.trycloudflare.com/vnc.html?autoconnect=1</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <h2 class="sec-title reveal">Một notebook — cả một cloud workstation</h2>
+  <p class="sec-sub reveal">Toàn bộ setup (desktop, VNC, tunnel, server) được tự động hóa trong 2 ô code. Không config, không domain, không vật lộn.</p>
+  <div class="feat">
+    <div class="fcard reveal"><div class="ico">🎮</div><h3>Cloud Gaming & Desktop</h3><p>Desktop XFCE ảo trên GPU VM, điều khiển qua noVNC trong trình duyệt. Cài Steam / Wine một click và chơi game, mở emulator, chạy app GUI.</p></div>
+    <div class="fcard reveal"><div class="ico">🤖</div><h3>Treo bot mọi nền tảng</h3><p>Upload script Python (Discord, Telegram, X/Twitter, custom) + token qua ô Env. Start / Stop, log realtime, tự tạo file .env bảo mật.</p></div>
+    <div class="fcard reveal"><div class="ico">📊</div><h3>Dashboard realtime</h3><p>GPU (tên card, util, VRAM, nhiệt độ), CPU, RAM, disk, uptime — tự làm mới mỗi 3 giây, giao diện dark neon tối giản.</p></div>
+    <div class="fcard reveal"><div class="ico">⌨️</div><h3>Web Terminal</h3><p>bash đầy đủ trên VM qua ttyd — cài gì cũng được như trên máy thật. Không cần SSH.</p></div>
+    <div class="fcard reveal"><div class="ico">📁</div><h3>File Manager</h3><p>Upload / download / xoá file trong VM ngay trên web — đưa model, save game, dataset lên/down nhanh gọn.</p></div>
+    <div class="fcard reveal"><div class="ico">⚡</div><h3>Quick Actions</h3><p>Nút 1 click: cài Steam, Wine, Firefox, discord.py, telegram… hoặc chạy lệnh tuỳ ý — kèm log trực quan.</p></div>
+    <div class="fcard reveal"><div class="ico">☁️</div><h3>Cloudflare Tunnel</h3><p>3 tunnel riêng (Dashboard / Desktop / Terminal) — URL public https, không cần domain, không mở port.</p></div>
+    <div class="fcard reveal"><div class="ico">🔐</div><h3>Bảo mật cơ bản</h3><p>Dashboard yêu cầu access key (?key=…) + cookie 7 ngày. Token bot nằm trong .env, không in ra log.</p></div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section id="how">
+  <h2 class="sec-title reveal">Chạy trong 3 bước, ~3 phút</h2>
+  <p class="sec-sub reveal">Bấm một trong hai nút phía trên để mở notebook, hoặc tải về và mở thủ công.</p>
+  <div class="steps">
+    <div class="step reveal"><h3>Mở & bật GPU</h3><p>Colab: <code class="inline">Runtime → Change runtime type → GPU</code> · Kaggle: <code class="inline">Settings → Accelerator → GPU</code> và bật <b>Internet</b>.</p></div>
+    <div class="step reveal"><h3>Chạy ô Bước 1 — Auto Setup</h3><p>Tự cài desktop XFCE, x11vnc, noVNC, ttyd, cloudflared, aiohttp. Chờ ~2–4 phút là xong.</p></div>
+    <div class="step reveal"><h3>Chạy ô Bước 2 — nhận URL</h3><p>Server khởi động, in ra 3 URL <code class="inline">*.trycloudflare.com</code>. <b>Giữ ô này chạy</b> để server sống.</p></div>
+  </div>
+
+  <div class="codewrap reveal" style="margin-top:44px">
+    <div class="top"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:#f87171;display:inline-block"></span><span class="dot" style="width:10px;height:10px;border-radius:50%;background:#fbbf24;display:inline-block"></span><span class="dot" style="width:10px;height:10px;border-radius:50%;background:#34d399;display:inline-block"></span><span style="margin-left:8px">output — Bước 2</span></div>
+<pre><span class="c-c"># sau ~30 giây, output hiện:</span>
+<span class="c-k">═══════</span> 🎮  GPU CLOUD SERVER ĐANG CHẠY — GIỮ Ô NÀY CHẠY LIÊN TỤC! <span class="c-k">═══════</span>
+   📊 Dashboard     <span class="c-s">https://gpu-server-9f2c.trycloudflare.com/?key=a71b…</span>
+   🖥️ Cloud Desktop  <span class="c-s">https://desktop-3d71.trycloudflare.com/vnc.html?autoconnect=1</span>
+   ⌨️ Web Terminal   <span class="c-s">https://terminal-8k2m.trycloudflare.com</span>
+   🔑 Access Key     <span class="c-ok">a71b3f92c4d8e501</span>
+<span class="c-c">→ mở Dashboard URL trên điện thoại / máy tính khác và dùng như một cloud PC!</span></pre>
+  </div>
+</section>
+
+<!-- LIMITS -->
+<section>
+  <h2 class="sec-title reveal">Giới hạn nên biết</h2>
+  <p class="sec-sub reveal">Nền tảng miễn phí nên có ràng buộc — biết trước để dùng hiệu quả.</p>
+  <table class="tbl reveal">
+    <tr><th>Nền tảng</th><th>GPU</th><th>Giới hạn phiên</th><th>Ghi chú</th></tr>
+    <tr><td>Google Colab (free)</td><td>T4 16GB</td><td>~3–12h, ngắt khi idle</td><td>Cần giữ tab mở</td></tr>
+    <tr><td>Kaggle</td><td>T4 ×2 / P100</td><td>~9–12h/phiên · ~30h/tuần</td><td>Bật Internet trong Settings</td></tr>
+  </table>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <h2 class="sec-title reveal">FAQ</h2>
+  <p class="sec-sub reveal"></p>
+  <details class="reveal" open><summary>Game AAA chơi mượt không? 🎮</summary><p>Đây là cloud desktop qua noVNC (truyền ảnh qua HTTP) nên phù hợp game nhẹ, game cũ, emulator, game 2D — không phải streaming độ trễ thấp kiểu Moonlight. Giảm resolution desktop xuống 1280×720 sẽ mượt hơn nhiều. GPU VM tốt nhất dùng cho AI/compute; desktop render bằng LLVMpipe.</p></details>
+  <details class="reveal"><summary>URL tunnel đổi mỗi lần chạy? ☁️</summary><p>Đúng — trycloudflare tạo URL ngẫu nhiên mỗi phiên. Mỗi lần chạy lại notebook là URL mới; copy lại từ output Bước 2 hoặc tab Tổng quan của dashboard cũ.</p></details>
+  <details class="reveal"><summary>Treo bot có an toàn không? 🤖</summary><p>Token bot nằm trong file .env tách riêng script, log không in token. Nhưng notebook bị ngắt khi phiên hết hạn → bot chết theo. Phù hợp bot "thử nghiệm"/cá nhân, không phải production 24/7 thật sự.</p></details>
+  <details class="reveal"><summary>Chạy cái này có bị cấm tài khoản? ⚠️</summary><p>Có rủi ro. Chạy game, remote desktop và workload nền dài hạn vi phạm ToS của Google Colab và Kaggle. Đây là dự án giáo dục/thử nghiệm — dùng cân nhắc, tự chịu rủi ro, đừng lạm dụng tài nguyên.</p></details>
+  <details class="reveal"><summary>Chạy được trên máy riêng? 💻</summary><p>Được — <code class="inline">pip install aiohttp</code> rồi <code class="inline">python dashboard.py</code> là có dashboard ở localhost:8080. Cloud desktop cần Xvfb + x11vnc + noVNC (apt install).</p></details>
+</section>
+
+<!-- CTA -->
+<section>
+  <div class="cta-band reveal">
+    <h2>Sẵn sàng biến notebook thành <span style="background:linear-gradient(90deg,#a78bfa,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent">cloud GPU server</span>?</h2>
+    <p class="sec-sub" style="margin-bottom:26px">Không cài đặt. Không thẻ tín dụng. Chỉ 2 ô code.</p>
+    <div class="cta" style="display:flex;gap:13px;justify-content:center;flex-wrap:wrap">
+      <a class="btn colab" href="https://colab.research.google.com/github/tiendatmeow-source/cloud-gaming-gpu/blob/main/cloud_gpu_server.ipynb" target="_blank">▶ Open in Google Colab</a>
+      <a class="btn kaggle" href="https://www.kaggle.com/kernels/welcome?src=https%3A%2F%2Fgithub.com%2Ftiendatmeow-source%2Fcloud-gaming-gpu%2Fblob%2Fmain%2Fcloud_gpu_server.ipynb" target="_blank">🅺 Open in Kaggle</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>🎮 <b>cloud-gaming-gpu</b> — GPU Cloud Server cho Kaggle / Google Colab · MIT License · <a href="https://github.com/tiendatmeow-source/cloud-gaming-gpu">GitHub repo</a></div>
+  <div class="warn">⚠️ Disclaimer: dự án phục vụ mục đích học tập & thử nghiệm. Cloud gaming, remote desktop và treo bot nền dài hạn có thể vi phạm Terms of Service của Google Colab / Kaggle — người dùng tự chịu trách nhiệm. URL trycloudflare là tạm thời; đừng chia sẻ link desktop/terminal công khai.</div>
+</footer>
+
+</div>
+<script>
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
