@@ -101,6 +101,8 @@ bot.infinity_polling()
 |---|---|
 | Ô Bước 1 báo Offline | Kaggle: Settings → Internet → ON rồi chạy lại |
 | Không in ra URL tunnel | Đợi thêm ~30s; xem log `~/gpu_server/*.log`; trycloudflare đôi khi chậm |
+| Cloud Gaming không có tunnel / Desktop đen | Interrupt ô Bước 2 → chạy ô **🩺 Sửa nhanh** → dùng URL mới in ra |
+| Xem trạng thái dịch vụ | Dashboard → tab **Tổng quan → ⚙️ Dịch vụ nền** (bấm 📜 xem log từng dịch vụ) |
 | Desktop đen thui | Thử nút ↻ trong noVNC; kiểm tra `~/gpu_server/xfce4.log` |
 | Bot start lập tức exit | Xem 📜 Logs — thường là thiếu token/env hoặc sai thư viện |
 | Colab ngắt kết nối | Giữ tab mở, ô Bước 2 đang chạy; có thử nghiệm "auto-reconnect" của trình duyệt |
